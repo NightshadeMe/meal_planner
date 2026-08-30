@@ -1,0 +1,6 @@
+*.env
+*.db
+/.venv/
+/.buildozer/
+/bin/
+*.pyc

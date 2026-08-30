@@ -1,0 +1,7 @@
+kivy>=2.3.0
+kivymd>=1.2.0
+peewee>=3.17.0
+qrcode>=7.4
+Pillow>=10.0.0
+pyzbar
+# zbarcam is installed via kivy garden - see README
