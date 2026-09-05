@@ -2,6 +2,7 @@ from kivy.lang import Builder
 from kivy.clock import Clock
 from kivy.properties import StringProperty, ObjectProperty
 from kivymd.uix.boxlayout import MDBoxLayout
+from kivymd.uix.menu import MDDropdownMenu
 
 Builder.load_string("""
 <IngredientRow>:
@@ -19,23 +20,6 @@ Builder.load_string("""
             size: self.size
             radius: [8]
 
-    ScrollView:
-        # Reserved the instant name_field gains focus, at a fixed height -
-        # not tied to suggestion_count. Android's below_target keyboard
-        # avoidance calculates its pan once, on focus change; if this area
-        # instead grew/shrank live while typing (by result count), the
-        # field's position would drift after that pan was already set,
-        # putting it back under the keyboard mid-typing.
-        size_hint_y: None
-        height: dp(80) if name_field.focus else 0
-        do_scroll_x: False
-
-        MDBoxLayout:
-            id: suggestions_box
-            orientation: "vertical"
-            size_hint_y: None
-            height: self.minimum_height
-
     MDBoxLayout:
         orientation: "horizontal"
         size_hint_y: None
@@ -49,30 +33,27 @@ Builder.load_string("""
             size_hint_x: 1
             mode: "rectangle"
             on_text: root._on_name_text(self.text)
-            on_focus: if not self.focus: root._schedule_hide_suggestions()
-
-        MDIconButton:
-            icon: "delete-outline"
-            size_hint: None, None
-            size: "40dp", "40dp"
-            on_release: root.request_delete()
 """)
 
 
 class IngredientRow(MDBoxLayout):
+    # Suggestions render in a floating MDDropdownMenu (see _show_suggestions),
+    # not as part of this row's own layout. Row height never changes based on
+    # typing/suggestion state, so there's nothing here for the keyboard's
+    # focus-follow scrolling or Window's softinput panning to fight over.
     ingredient_name = StringProperty("")
 
     request_delete = ObjectProperty(lambda: None)
     on_name_change = ObjectProperty(None, allownone=True)
 
     _debounce_event = None
+    _menu = None
 
     def _on_name_text(self, text: str) -> None:
         self.ingredient_name = text
         if self.on_name_change:
             self.on_name_change(self, text)
 
-        # Cancel any pending autocomplete lookup
         if self._debounce_event:
             self._debounce_event.cancel()
             self._debounce_event = None
@@ -81,7 +62,6 @@ class IngredientRow(MDBoxLayout):
             self._hide_suggestions()
             return
 
-        # Schedule lookup 300 ms after the user stops typing
         self._debounce_event = Clock.schedule_once(lambda _: self._do_lookup(text), 0.3)
 
     def _do_lookup(self, text: str) -> None:
@@ -89,36 +69,40 @@ class IngredientRow(MDBoxLayout):
 
         repo = IngredientRepository()
 
-        # Exact match → nothing more to suggest, just close the dropdown
         if repo.get_by_name(text.strip()):
             self._hide_suggestions()
             return
 
-        results = repo.search_by_name(text)
-        self._show_suggestions(results)
+        self._show_suggestions(repo.search_by_name(text))
 
     def _show_suggestions(self, results: list) -> None:
-        from kivymd.uix.list import OneLineListItem
+        self._hide_suggestions()
+        if not results:
+            return
 
-        box = self.ids.suggestions_box
-        box.clear_widgets()
-        for ing in results[:5]:
-            item = OneLineListItem(
-                text=ing.name.capitalize(), size_hint_y=None, height="40dp"
-            )
-            item.bind(on_release=lambda _, i=ing: self._apply_suggestion(i))
-            box.add_widget(item)
+        items = [
+            {
+                "text": ing.name.capitalize(),
+                "viewclass": "OneLineListItem",
+                "on_release": (lambda i=ing: self._apply_suggestion(i)),
+            }
+            for ing in results[:5]
+        ]
+        self._menu = MDDropdownMenu(
+            caller=self.ids.name_field,
+            items=items,
+            position="top",  # always opens upward from the field, never
+            # relies on Window.height (which doesn't
+            # account for the on-screen keyboard)
+            max_height="200dp",  # ~5 rows; scrolls internally past that
+            width=self.ids.name_field.width,
+        )
+        self._menu.open()
 
     def _hide_suggestions(self) -> None:
-        self.ids.suggestions_box.clear_widgets()
-
-    def _schedule_hide_suggestions(self) -> None:
-        # name_field loses focus the instant a suggestion item is touched
-        # (touch-down), before that item's on_release (touch-up) fires.
-        # Hiding immediately here would clear the item out from under the
-        # tap. Delaying gives a genuine tap-and-release time to land first;
-        # a real "tap elsewhere" still hides quickly enough to feel instant.
-        Clock.schedule_once(lambda _dt: self._hide_suggestions(), 0.2)
+        if self._menu:
+            self._menu.dismiss()
+            self._menu = None
 
     def _apply_suggestion(self, ingredient) -> None:
         self._hide_suggestions()
