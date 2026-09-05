@@ -1,7 +1,6 @@
 from kivy.lang import Builder
 from kivy.clock import Clock
-from kivy.metrics import dp
-from kivy.properties import StringProperty, NumericProperty, ObjectProperty
+from kivy.properties import StringProperty, ObjectProperty
 from kivymd.uix.boxlayout import MDBoxLayout
 
 Builder.load_string("""
@@ -21,12 +20,14 @@ Builder.load_string("""
             radius: [8]
 
     ScrollView:
-        # Above the input row on purpose: Window.softinput_mode="below_target"
-        # only guarantees the focused text field clears the keyboard - anything
-        # below it in the layout still gets pushed under the keyboard. Putting
-        # suggestions above the field means the same pan reveals both.
+        # Reserved the instant name_field gains focus, at a fixed height -
+        # not tied to suggestion_count. Android's below_target keyboard
+        # avoidance calculates its pan once, on focus change; if this area
+        # instead grew/shrank live while typing (by result count), the
+        # field's position would drift after that pan was already set,
+        # putting it back under the keyboard mid-typing.
         size_hint_y: None
-        height: min(root.suggestion_count, 2) * dp(40)
+        height: dp(80) if name_field.focus else 0
         do_scroll_x: False
 
         MDBoxLayout:
@@ -60,7 +61,6 @@ Builder.load_string("""
 
 class IngredientRow(MDBoxLayout):
     ingredient_name = StringProperty("")
-    suggestion_count = NumericProperty(0)
 
     request_delete = ObjectProperty(lambda: None)
     on_name_change = ObjectProperty(None, allownone=True)
@@ -102,18 +102,15 @@ class IngredientRow(MDBoxLayout):
 
         box = self.ids.suggestions_box
         box.clear_widgets()
-        shown = results[:5]
-        for ing in shown:
+        for ing in results[:5]:
             item = OneLineListItem(
                 text=ing.name.capitalize(), size_hint_y=None, height="40dp"
             )
             item.bind(on_release=lambda _, i=ing: self._apply_suggestion(i))
             box.add_widget(item)
-        self.suggestion_count = len(shown)
 
     def _hide_suggestions(self) -> None:
         self.ids.suggestions_box.clear_widgets()
-        self.suggestion_count = 0
 
     def _schedule_hide_suggestions(self) -> None:
         # name_field loses focus the instant a suggestion item is touched
