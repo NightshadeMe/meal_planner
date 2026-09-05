@@ -25,44 +25,31 @@ class ShoppingService:
     # ---------------------------------------------------- list generation --
 
     def create_list(self, name: str, meal_ids: list[int]) -> ShoppingList:
-        """
-        Aggregate ingredients from the selected meals and write a new list.
-        Because the Ingredient table guarantees (name, unit) uniqueness, the
-        same ingredient always carries the same unit → no unit conflicts.
-        """
-        # accumulator: ingredient_name → {unit, qty, first_meal_id}
-        acc: dict[str, dict] = {}
-
-        for meal_id in meal_ids:
-            for mi in _meal_repo.get_ingredients(meal_id):
-                key = mi.ingredient.name
-                if key in acc:
-                    acc[key]["qty"] += mi.quantity
-                else:
-                    acc[key] = {
-                        "unit":     mi.ingredient.unit,
-                        "qty":      mi.quantity,
-                        "meal_id":  meal_id,
-                    }
+        """One row per unique ingredient across the selected meals - no
+        cumulation, no rules beyond "needed at least once this week"."""
+        seen: set[str] = set()
 
         shopping_list = _shopping_repo.create_list(name)
-        for ing_name, data in acc.items():
-            _shopping_repo.add_item(
-                list_id        = shopping_list.id,
-                ingredient_name= ing_name,
-                unit           = data["unit"],
-                quantity       = data["qty"],
-                is_custom      = False,
-                source_meal_id = data["meal_id"],
-            )
+        for meal_id in meal_ids:
+            for mi in _meal_repo.get_ingredients(meal_id):
+                if mi.ingredient.name in seen:
+                    continue
+                seen.add(mi.ingredient.name)
+                _shopping_repo.add_item(
+                    list_id        = shopping_list.id,
+                    ingredient_name= mi.ingredient.name,
+                    quantity       = 1,
+                    is_custom      = False,
+                    source_meal_id = meal_id,
+                )
         return shopping_list
 
     # --------------------------------------------------------------- items --
 
     def add_custom_item(self, list_id: int, ingredient_name: str,
-                        unit: str, quantity: float) -> ShoppingListItem:
+                        quantity: float) -> ShoppingListItem:
         return _shopping_repo.add_item(
-            list_id, ingredient_name, unit, quantity, is_custom=True
+            list_id, ingredient_name, quantity, is_custom=True
         )
 
     def update_quantity(self, item_id: int, quantity: float) -> None:

@@ -4,7 +4,7 @@ from kivymd.uix.screen import MDScreen
 from kivymd.uix.dialog import MDDialog
 from kivymd.uix.button import MDFlatButton
 from services.meal_service import meal_service
-from constants import format_quantity, CATEGORY_LABELS
+from constants import CATEGORY_LABELS
 from utils import snackbar
 
 Builder.load_string("""
@@ -88,8 +88,9 @@ class MealDetailScreen(MDScreen):
 
         for mi in meal_service.get_ingredients(self._meal_id):
             from kivymd.uix.list import OneLineListItem
-            label = f"  {mi.ingredient.name.capitalize()}  —  {format_quantity(mi.quantity, mi.ingredient.unit)}"
-            container.add_widget(OneLineListItem(text=label))
+            container.add_widget(
+                OneLineListItem(text=f"  {mi.ingredient.name.capitalize()}")
+            )
 
     def show_qr(self) -> None:
         try:

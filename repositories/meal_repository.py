@@ -82,9 +82,5 @@ class MealRepository:
         for item in ingredients:
             if not item.get("name"):
                 continue
-            ingredient = _ing_repo.get_or_create(item["name"], item["unit"])
-            MealIngredient.create(
-                meal=meal,
-                ingredient=ingredient,
-                quantity=float(item["quantity"]),
-            )
+            ingredient = _ing_repo.get_or_create(item["name"])
+            MealIngredient.create(meal=meal, ingredient=ingredient)

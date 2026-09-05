@@ -39,17 +39,8 @@ Builder.load_string("""
         shorten: True
         shorten_from: "right"
 
-    MDLabel:
-        text: root.unit
-        size_hint_x: None
-        width: "36dp"
-        halign: "center"
-        theme_text_color: "Hint"
-        valign: "center"
-
     QuantityStepper:
         id: stepper
-        unit: root.unit
         quantity: root.quantity
         size_hint_x: None
         width: "148dp"
@@ -65,7 +56,6 @@ Builder.load_string("""
 class ShoppingItemRow(MDBoxLayout):
     item_id         = NumericProperty(0)
     ingredient_name = StringProperty("")
-    unit            = StringProperty("g")
     quantity        = NumericProperty(1)
     is_purchased    = BooleanProperty(False)
 

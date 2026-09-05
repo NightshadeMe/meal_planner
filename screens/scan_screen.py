@@ -153,10 +153,7 @@ class ScanScreen(MDScreen):
         name = data["name"]
         desc = data["description"]
         categories = data["categories"]
-        ingredients = [
-            {"name": i["name"], "unit": i["unit"], "quantity": i["qty"]}
-            for i in data["ingredients"]
-        ]
+        ingredients = [{"name": i["name"]} for i in data["ingredients"]]
 
         if overwrite:
             meals = meal_service.get_all()

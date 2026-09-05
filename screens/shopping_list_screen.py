@@ -5,9 +5,7 @@ from kivymd.uix.screen import MDScreen
 from kivymd.uix.dialog import MDDialog
 from kivymd.uix.button import MDFlatButton, MDRaisedButton
 from kivymd.uix.boxlayout import MDBoxLayout
-from kivymd.uix.menu import MDDropdownMenu
 from services.shopping_service import shopping_service
-from constants import UNIT_LIST, UNITS
 from utils import snackbar
 
 Builder.load_string("""
@@ -64,32 +62,17 @@ Builder.load_string("""
             size_hint_y: None
             height: self.minimum_height
 
-    MDBoxLayout:
+    QuantityStepper:
+        id: stepper
+        quantity: root.qty
         size_hint_y: None
         height: "48dp"
-        spacing: "8dp"
-
-        MDRaisedButton:
-            id: unit_btn
-            text: root.unit
-            size_hint: None, None
-            size: "80dp", "44dp"
-            disabled: root.unit_locked
-            on_release: root.open_unit_menu()
-
-        QuantityStepper:
-            id: stepper
-            unit: root.unit
-            quantity: root.qty
 """)
 
 
 class AddCustomItemContent(MDBoxLayout):
-    unit        = "g"
-    qty         = UNITS["g"]["min"]
-    unit_locked = False
-    _menu       = None
-    _debounce   = None
+    qty       = 1
+    _debounce = None
 
     def _on_name_text(self, text: str) -> None:
         if self._debounce:
@@ -105,7 +88,6 @@ class AddCustomItemContent(MDBoxLayout):
         exact = repo.get_by_name(text.strip())
         if exact:
             self._hide_suggestions()
-            self._apply_suggestion(exact)
             return
         self._show_suggestions(repo.search_by_name(text))
 
@@ -115,9 +97,7 @@ class AddCustomItemContent(MDBoxLayout):
         box.clear_widgets()
         for ing in results[:4]:
             item = OneLineListItem(
-                text=f"{ing.name.capitalize()}  ({ing.unit})",
-                size_hint_y=None,
-                height="40dp",
+                text=ing.name.capitalize(), size_hint_y=None, height="40dp",
             )
             item.bind(on_release=lambda _, i=ing: self._apply_suggestion(i))
             box.add_widget(item)
@@ -127,45 +107,13 @@ class AddCustomItemContent(MDBoxLayout):
 
     def _apply_suggestion(self, ingredient) -> None:
         self._hide_suggestions()
-        self.unit                  = ingredient.unit
-        self.unit_locked           = True
-        self.ids.name_field.text   = ingredient.name.capitalize()
-        self.ids.unit_btn.text     = ingredient.unit
-        self.ids.unit_btn.disabled = True
-        self.ids.stepper.set_unit(ingredient.unit)
-
-    def open_unit_menu(self) -> None:
-        items = [
-            {
-                "text":       u,
-                "viewclass":  "OneLineListItem",
-                "on_release": (lambda u=u: self._set_unit(u)),
-            }
-            for u in UNIT_LIST
-        ]
-        self._menu = MDDropdownMenu(
-            caller=self.ids.unit_btn,
-            items=items,
-            width="120dp",
-        )
-        self._menu.open()
-
-    def _set_unit(self, unit: str) -> None:
-        if self._menu:
-            self._menu.dismiss()
-        self.unit              = unit
-        self.ids.unit_btn.text = unit
-        self.ids.stepper.set_unit(unit)
+        self.ids.name_field.text = ingredient.name.capitalize()
 
     def get_data(self) -> dict | None:
         name = self.ids.name_field.text.strip()
         if not name:
             return None
-        return {
-            "name":     name.lower(),
-            "unit":     self.unit,
-            "quantity": self.ids.stepper.quantity,
-        }
+        return {"name": name.lower(), "quantity": self.ids.stepper.quantity}
 
 
 class ShoppingListScreen(MDScreen):
@@ -204,7 +152,6 @@ class ShoppingListScreen(MDScreen):
             row = ShoppingItemRow(
                 item_id         = item.id,
                 ingredient_name = item.ingredient_name.capitalize(),
-                unit            = item.unit,
                 quantity        = item.quantity,
                 is_purchased    = item.is_purchased,
             )
@@ -245,9 +192,7 @@ class ShoppingListScreen(MDScreen):
         if not data:
             snackbar("Enter an ingredient name")
             return
-        shopping_service.add_custom_item(
-            self.list_id, data["name"], data["unit"], data["quantity"]
-        )
+        shopping_service.add_custom_item(self.list_id, data["name"], data["quantity"])
         dialog.dismiss()
         self._render_items()
 

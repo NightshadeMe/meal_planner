@@ -16,13 +16,11 @@ class BaseModel(Model):
 
 
 class Ingredient(BaseModel):
-    """Shared ingredient catalog. Unique on (name, unit)."""
-    name = CharField()          # stored lowercase
-    unit = CharField()
+    """Shared ingredient catalog, used for meal-creation autosuggest."""
+    name = CharField(unique=True)          # stored lowercase
 
     class Meta:
         table_name = "ingredient"
-        indexes = ((("name", "unit"), True),)   # composite unique
 
 
 class Meal(BaseModel):
@@ -38,9 +36,10 @@ class Meal(BaseModel):
 
 
 class MealIngredient(BaseModel):
+    """Links a meal to an ingredient it needs. No quantity - that's decided
+    per shopping trip, not baked into the recipe."""
     meal       = ForeignKeyField(Meal,       backref="ingredients",      on_delete="CASCADE")
     ingredient = ForeignKeyField(Ingredient, backref="meal_ingredients")
-    quantity   = FloatField()
 
     class Meta:
         table_name = "meal_ingredient"
@@ -57,7 +56,6 @@ class ShoppingList(BaseModel):
 class ShoppingListItem(BaseModel):
     shopping_list   = ForeignKeyField(ShoppingList, backref="items", on_delete="CASCADE")
     ingredient_name = CharField()          # denormalised snapshot
-    unit            = CharField()
     quantity        = FloatField()
     is_purchased    = BooleanField(default=False)
     is_custom       = BooleanField(default=False)  # manually added, not from a meal
@@ -68,9 +66,13 @@ class ShoppingListItem(BaseModel):
 
 
 class PlannedMeal(BaseModel):
-    """One cell of the weekly plan grid. A missing row means an empty cell."""
-    day      = CharField()   # one of constants.DAYS
-    category = CharField()   # one of constants.CATEGORIES
+    """One cell of the weekly plan grid. A missing row means an empty cell.
+
+    Also holds the single Favorites slot, via the sentinel pair
+    (constants.FAVORITES_DAY, constants.FAVORITES_CATEGORY) - not a real
+    day or category, just another row in the same table."""
+    day      = CharField()   # one of constants.DAYS, or FAVORITES_DAY
+    category = CharField()   # one of constants.CATEGORIES, or FAVORITES_CATEGORY
     meal     = ForeignKeyField(Meal, backref="planned_slots", on_delete="CASCADE")
 
     class Meta:

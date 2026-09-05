@@ -1,5 +1,5 @@
 import json
-from constants import QR_FORMAT, UNIT_LIST, CATEGORIES
+from constants import QR_FORMAT, CATEGORIES
 
 
 class ImportService:
@@ -12,7 +12,7 @@ class ImportService:
             {
                 "name": str,
                 "description": str,
-                "ingredients": [{"name": str, "qty": float, "unit": str}, ...]
+                "ingredients": [{"name": str}, ...]
             }
 
         Raises ``ValueError`` with a human-readable message on any problem.
@@ -24,7 +24,7 @@ class ImportService:
 
         if data.get("fmt") != QR_FORMAT:
             raise ValueError(
-                f"Unknown format '{data.get('fmt')}'. "
+                f"Unknown or outdated format '{data.get('fmt')}'. "
                 f"Expected '{QR_FORMAT}'."
             )
 
@@ -36,14 +36,9 @@ class ImportService:
         ingredients: list[dict] = []
         for ing in raw_ingredients:
             ing_name = (ing.get("n") or "").strip()
-            ing_unit = (ing.get("u") or "").strip()
-            if not ing_name or ing_unit not in UNIT_LIST:
+            if not ing_name:
                 continue   # skip malformed entries silently
-            ingredients.append({
-                "name": ing_name,
-                "qty":  float(ing.get("q", 1)),
-                "unit": ing_unit,
-            })
+            ingredients.append({"name": ing_name})
 
         raw_categories = data.get("cat", [])
         categories = [c for c in raw_categories if c in CATEGORIES] \

@@ -11,7 +11,7 @@ from kivymd.uix.textfield import MDTextField
 
 from services.meal_service import meal_service
 from services.plan_service import plan_service
-from constants import DAYS, DAY_LABELS, CATEGORY_LABELS
+from constants import DAYS, DAY_LABELS, CATEGORY_LABELS, FAVORITES_DAY, FAVORITES_CATEGORY
 from utils import snackbar
 
 # Column order for this screen only (meal editing / meal list keep the
@@ -91,9 +91,21 @@ class PlanScreen(MDScreen):
                 row.add_widget(self._cell(day, cat, meal))
             container.add_widget(row)
 
-    def _cell(self, day: str, category: str, meal) -> PlanCell:
+        # Single extra slot, not tied to any day - e.g. a "Staples" meal
+        # covering whatever you buy every week regardless of what's cooked.
+        fav_row = MDBoxLayout(
+            orientation="horizontal", size_hint_y=None, height=dp(56), spacing=dp(4)
+        )
+        fav_row.add_widget(MDLabel(text="Favorites", size_hint_x=0.22))
+        fav_meal = grid.get((FAVORITES_DAY, FAVORITES_CATEGORY))
+        fav_row.add_widget(
+            self._cell(FAVORITES_DAY, FAVORITES_CATEGORY, fav_meal, size_hint_x=0.78)
+        )
+        container.add_widget(fav_row)
+
+    def _cell(self, day: str, category: str, meal, size_hint_x: float = 0.26) -> PlanCell:
         cell = PlanCell(
-            size_hint_x=0.26,
+            size_hint_x=size_hint_x,
             size_hint_y=None,
             height=dp(48),
             padding=(dp(4), 0),
@@ -120,7 +132,15 @@ class PlanScreen(MDScreen):
     # ------------------------------------------------------------ picker --
 
     def open_picker(self, day: str, category: str) -> None:
-        meals = meal_service.get_by_category(category)
+        is_favorites = day == FAVORITES_DAY
+        if is_favorites:
+            meals = meal_service.get_all()
+            title = "Favorites"
+            empty_text = "No meals saved yet"
+        else:
+            meals = meal_service.get_by_category(category)
+            title = f"{DAY_LABELS[day]} • {CATEGORY_LABELS[category]}"
+            empty_text = f"No {CATEGORY_LABELS[category].lower()} meals yet"
 
         mlist = MDList()
         mlist.add_widget(
@@ -130,12 +150,7 @@ class PlanScreen(MDScreen):
             )
         )
         if not meals:
-            mlist.add_widget(
-                OneLineListItem(
-                    text=f"No {CATEGORY_LABELS[category].lower()} meals yet",
-                    disabled=True,
-                )
-            )
+            mlist.add_widget(OneLineListItem(text=empty_text, disabled=True))
         for meal in meals:
             mlist.add_widget(
                 OneLineListItem(
@@ -150,7 +165,7 @@ class PlanScreen(MDScreen):
         content.add_widget(mlist)
 
         self._dialog = MDDialog(
-            title=f"{DAY_LABELS[day]} • {CATEGORY_LABELS[category]}",
+            title=title,
             type="custom",
             content_cls=content,
             buttons=[

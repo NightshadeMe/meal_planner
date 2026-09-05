@@ -34,18 +34,17 @@ class ShoppingRepository:
     def delete_list(self, list_id: int) -> None:
         ShoppingList.delete_by_id(list_id)
 
-    def add_item(self, list_id: int, ingredient_name: str, unit: str,
+    def add_item(self, list_id: int, ingredient_name: str,
                  quantity: float, is_custom: bool = False,
                  source_meal_id: int | None = None) -> ShoppingListItem:
         """
-        If an item with the same name+unit already exists in this list,
+        If an item with the same name already exists in this list,
         aggregate quantity instead of inserting a duplicate row.
         """
         name = ingredient_name.strip().lower()
         existing = ShoppingListItem.get_or_none(
             (ShoppingListItem.shopping_list_id == list_id) &
-            (ShoppingListItem.ingredient_name == name) &
-            (ShoppingListItem.unit == unit)
+            (ShoppingListItem.ingredient_name == name)
         )
         if existing:
             existing.quantity += quantity
@@ -55,7 +54,6 @@ class ShoppingRepository:
         return ShoppingListItem.create(
             shopping_list_id = list_id,
             ingredient_name  = name,
-            unit             = unit,
             quantity         = quantity,
             is_custom        = is_custom,
             source_meal_id   = source_meal_id,

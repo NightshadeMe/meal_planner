@@ -1,7 +1,6 @@
 from kivy.lang import Builder
-from kivy.properties import NumericProperty, StringProperty, ObjectProperty
+from kivy.properties import NumericProperty, ObjectProperty
 from kivymd.uix.boxlayout import MDBoxLayout
-from constants import UNITS
 
 Builder.load_string("""
 <QuantityStepper>:
@@ -36,12 +35,10 @@ Builder.load_string("""
 
 
 class QuantityStepper(MDBoxLayout):
-    quantity  = NumericProperty(0)
-    unit      = StringProperty("g")
+    quantity  = NumericProperty(1)
+    step      = NumericProperty(1)
+    min_value = NumericProperty(1)
     on_change = ObjectProperty(None, allownone=True)
-
-    def _cfg(self) -> dict:
-        return UNITS.get(self.unit, {"step": 1, "min": 1})
 
     def _display_text(self) -> str:
         qty = self.quantity
@@ -49,24 +46,18 @@ class QuantityStepper(MDBoxLayout):
         return f"{val}"
 
     def _increment(self) -> None:
-        self.quantity += self._cfg()["step"]
+        self.quantity += self.step
         self._notify()
 
     def _decrement(self) -> None:
-        cfg     = self._cfg()
-        new_qty = self.quantity - cfg["step"]
-        if new_qty >= cfg["min"]:
+        new_qty = self.quantity - self.step
+        if new_qty >= self.min_value:
             self.quantity = new_qty
             self._notify()
 
     def _notify(self) -> None:
         if self.on_change:
             self.on_change(self.quantity)
-
-    def set_unit(self, unit: str) -> None:
-        """Switch unit and reset quantity to the new unit's minimum."""
-        self.unit     = unit
-        self.quantity = self._cfg()["min"]
 
     def on_quantity(self, _instance, _value) -> None:
         if self.ids:

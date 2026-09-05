@@ -2,21 +2,8 @@ import os
 
 APP_NAME  = "MealPlanner"
 DB_NAME   = "mealplanner.db"
-QR_FORMAT = "mp-v1"
+QR_FORMAT = "mp-v2"   # v2: ingredients are name-only (no quantity/unit)
 
-UNITS: dict[str, dict] = {
-    "g":     {"step": 50,  "min": 50},
-    "ml":    {"step": 50,  "min": 50},
-    "pcs":   {"step": 1,   "min": 1},
-    "tsp":   {"step": 1,   "min": 1},
-    "tbsp":  {"step": 1,   "min": 1},
-    "cup":   {"step": 1,   "min": 1},
-    "pinch": {"step": 1,   "min": 1},
-    "slice": {"step": 1,   "min": 1},
-    "clove": {"step": 1,   "min": 1},
-}
-
-UNIT_LIST: list[str] = list(UNITS.keys())
 MAIN_SCREENS = {"meals", "lists", "scan", "plan"}
 
 CATEGORIES: list[str] = ["lunch", "dinner", "snack"]
@@ -37,6 +24,13 @@ DAY_LABELS: dict[str, str] = {
     "sun": "Sunday",
 }
 
+# Sentinel (day, category) pair for the single "Favorites" slot in the
+# weekly plan. Reuses PlannedMeal's existing unique-(day, category) row
+# instead of a separate table - it's just one more cell that happens not
+# to belong to a real day or a lunch/dinner/snack category.
+FAVORITES_DAY      = "favorites"
+FAVORITES_CATEGORY = "favorites"
+
 
 def get_db_path() -> str:
     try:
@@ -47,8 +41,3 @@ def get_db_path() -> str:
     except Exception:
         pass
     return DB_NAME
-
-
-def format_quantity(qty: float, unit: str) -> str:
-    val = int(qty) if qty == int(qty) else qty
-    return f"{val} {unit}"

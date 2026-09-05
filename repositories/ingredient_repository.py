@@ -3,11 +3,8 @@ from db.models import Ingredient
 
 class IngredientRepository:
 
-    def get_or_create(self, name: str, unit: str) -> Ingredient:
-        ingredient, _ = Ingredient.get_or_create(
-            name=name.strip().lower(),
-            unit=unit,
-        )
+    def get_or_create(self, name: str) -> Ingredient:
+        ingredient, _ = Ingredient.get_or_create(name=name.strip().lower())
         return ingredient
 
     def search_by_name(self, query: str) -> list[Ingredient]:

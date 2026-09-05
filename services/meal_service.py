@@ -48,14 +48,7 @@ class MealService:
             "name": meal.name,
             "desc": meal.description,
             "cat":  self.categories_of(meal),
-            "ing":  [
-                {
-                    "n": mi.ingredient.name,
-                    "q": mi.quantity,
-                    "u": mi.ingredient.unit,
-                }
-                for mi in ingredients
-            ],
+            "ing":  [{"n": mi.ingredient.name} for mi in ingredients],
         }
         return json.dumps(payload, separators=(",", ":"))
 

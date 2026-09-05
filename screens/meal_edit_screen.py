@@ -4,7 +4,7 @@ from kivymd.uix.screen import MDScreen
 from kivymd.uix.dialog import MDDialog
 from kivymd.uix.button import MDFlatButton, MDRaisedButton
 from services.meal_service import meal_service
-from constants import UNITS, CATEGORIES, CATEGORY_LABELS
+from constants import CATEGORIES, CATEGORY_LABELS
 from utils import snackbar
 
 Builder.load_string("""
@@ -100,12 +100,7 @@ class MealEditScreen(MDScreen):
                 self._selected_categories = set(meal_service.categories_of(meal))
                 self._refresh_category_buttons()
                 for mi in meal_service.get_ingredients(self._meal_id):
-                    self.add_ingredient_row(
-                        name=mi.ingredient.name,
-                        unit=mi.ingredient.unit,
-                        qty=mi.quantity,
-                        locked=True,
-                    )
+                    self.add_ingredient_row(name=mi.ingredient.name)
 
         if not self.ids.ingredients_container.children:
             self.add_ingredient_row()
@@ -136,8 +131,7 @@ class MealEditScreen(MDScreen):
             btn.md_bg_color = app.theme_cls.primary_color if selected else (0.85, 0.85, 0.85, 1)
             btn.text_color  = (1, 1, 1, 1) if selected else (0, 0, 0, 1)
 
-    def add_ingredient_row(self, name: str = "", unit: str = "g",
-                           qty: float = 0, locked: bool = False) -> None:
+    def add_ingredient_row(self, name: str = "") -> None:
         from widgets.ingredient_row import IngredientRow
         row = IngredientRow()
 
@@ -148,11 +142,7 @@ class MealEditScreen(MDScreen):
         self.ids.ingredients_container.add_widget(row)
 
         if name:
-            Clock.schedule_once(
-                lambda _: row.populate(name, unit, qty or UNITS[unit]["min"], locked)
-            )
-        else:
-            Clock.schedule_once(lambda _: row.ids.stepper.set_unit(unit))
+            Clock.schedule_once(lambda _: row.populate(name))
 
     def save(self) -> None:
         name = self.ids.name_field.text.strip()
@@ -167,11 +157,8 @@ class MealEditScreen(MDScreen):
             snackbar("Select at least one category")
             return
 
-        ingredients = [
-            row.get_data()
-            for row in self.ids.ingredients_container.children
-            if row.get_data().get("name")
-        ]
+        row_data   = [row.get_data() for row in self.ids.ingredients_container.children]
+        ingredients = [d for d in row_data if d.get("name")]
         if not ingredients:
             snackbar("Add at least one ingredient")
             return

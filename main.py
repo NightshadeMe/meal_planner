@@ -15,17 +15,17 @@ import widgets.shopping_item_row
 import widgets.bottom_nav
 import widgets.qr_widget
 
-from screens.meals_screen         import MealsScreen
-from screens.meal_edit_screen     import MealEditScreen
-from screens.meal_detail_screen   import MealDetailScreen
-from screens.plan_screen          import PlanScreen
-from screens.lists_screen         import ListsScreen
-from screens.create_list_screen   import CreateListScreen
+from screens.meals_screen import MealsScreen
+from screens.meal_edit_screen import MealEditScreen
+from screens.meal_detail_screen import MealDetailScreen
+from screens.plan_screen import PlanScreen
+from screens.lists_screen import ListsScreen
+from screens.create_list_screen import CreateListScreen
 from screens.shopping_list_screen import ShoppingListScreen
-from screens.scan_screen          import ScanScreen
+from screens.scan_screen import ScanScreen
 
 from db.database import init_db, close_db
-from constants   import get_db_path, MAIN_SCREENS
+from constants import get_db_path, MAIN_SCREENS
 
 Builder.load_string("""
 <RootLayout>:
@@ -40,6 +40,7 @@ Builder.load_string("""
 
 from kivymd.uix.boxlayout import MDBoxLayout
 
+
 class RootLayout(MDBoxLayout):
     pass
 
@@ -49,8 +50,8 @@ class MealPlannerApp(MDApp):
 
     def build(self):
         self.theme_cls.primary_palette = "Teal"
-        self.theme_cls.accent_palette  = "Amber"
-        self.theme_cls.theme_style     = "Light"
+        self.theme_cls.accent_palette = "Amber"
+        self.theme_cls.theme_style = "Light"
 
         # DB must be ready before any screen's on_enter fires
         init_db(get_db_path())
@@ -76,11 +77,11 @@ class MealPlannerApp(MDApp):
         close_db()
 
     def navigate_to(self, screen_name: str) -> None:
-        self.sm.current     = screen_name
+        self.sm.current = screen_name
         self.current_screen = screen_name
         try:
             nav = self.root.ids.bottom_nav
-            nav.opacity  = 1 if screen_name in MAIN_SCREENS else 0
+            nav.opacity = 1 if screen_name in MAIN_SCREENS else 0
             nav.disabled = screen_name not in MAIN_SCREENS
         except Exception:
             pass
