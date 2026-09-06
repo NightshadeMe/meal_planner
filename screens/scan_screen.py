@@ -41,7 +41,33 @@ class ScanScreen(MDScreen):
 
     def on_enter(self, *_) -> None:
         self._processing = False
-        Clock.schedule_once(self._start_camera)
+        self._ensure_camera_permission()
+
+    def _ensure_camera_permission(self) -> None:
+        try:
+            from android.permissions import (
+                request_permissions,
+                check_permission,
+                Permission,
+            )
+        except ImportError:
+            # Not running on Android (e.g. desktop testing) - nothing to ask.
+            Clock.schedule_once(self._start_camera)
+            return
+
+        if check_permission(Permission.CAMERA):
+            Clock.schedule_once(self._start_camera)
+            return
+
+        def _on_result(_permissions, grants):
+            if any(grants):
+                Clock.schedule_once(self._start_camera)
+            else:
+                self.ids.hint_label.text = (
+                    "Camera permission is required to scan QR codes."
+                )
+
+        request_permissions([Permission.CAMERA], _on_result)
 
     def on_leave(self, *_) -> None:
         self._stop_camera()
@@ -179,4 +205,3 @@ class ScanScreen(MDScreen):
     def _restart_camera(self) -> None:
         self._processing = False
         Clock.schedule_once(self._start_camera, 0.5)
-
